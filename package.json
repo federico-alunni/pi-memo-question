@@ -21,11 +21,19 @@
     "extensions": ["./extensions/question.ts"]
   },
   "scripts": {
-    "test": "node --import ./test/host-aliases.mjs --test test/*.test.ts"
+    "test": "node --import ./test/host-aliases.mjs --test \"test/*.test.ts\""
+  },
+  "engines": {
+    "node": ">=22.18"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",
     "@earendil-works/pi-tui": "*",
     "typebox": "*"
+  },
+  "peerDependenciesMeta": {
+    "@earendil-works/pi-coding-agent": { "optional": true },
+    "@earendil-works/pi-tui": { "optional": true },
+    "typebox": { "optional": true }
   }
 }

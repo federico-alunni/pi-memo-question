@@ -7,11 +7,13 @@ It is the **only** question tool of the memo extensions:
 
 | Who | How it gets the tool |
 |---|---|
-| main agent (`pi`) | `~/.pi/agent/settings.json` → `"packages": [..., "../../code/personal/pi-memo-question"]` |
-| `pi-ir` | `-e ~/code/personal/pi-memo-question` |
-| pi-memo-subagents children (`subagent` tool, Issue Round agents) | the runtime adds `-e <this package>/extensions/question.ts`: always for profile children, with `question: true` for isolated ones. pi loads the same path once, so it never conflicts with the profile's copy |
+| main agent (`pi`) | installed as a pi package, see [Install](#install-collaborators) |
+| `pi-ir` | `pi -e <path of the installed package>` (`pi list` shows it) |
+| [pi-memo-subagents](https://github.com/federico-alunni/pi-memo-subagents) children (`subagent` tool, Issue Round agents) | the runtime adds `-e <this package>/extensions/question.ts`: always for profile children, with `question: true` for isolated ones. pi loads the same path once, so it never conflicts with the profile's copy |
 
-pi-memo-subagents depends on it (`"pi-memo-question": "file:../pi-memo-question"`).
+pi-memo-subagents depends on it as the npm dependency `pi-memo-question` (a git dependency, e.g.
+`"pi-memo-question": "github:federico-alunni/pi-memo-question#v0.1.0"`). For that, `exports` exposes `./extension`,
+`./dialog`, `./events` and `./package.json`.
 
 ## Install (collaborators)
 
@@ -23,10 +25,11 @@ pi update --extensions                                       # pull new versions
 Without a `@ref` pi follows `main`, so `pi update --extensions` picks up new commits. Pinning a release
 (`…pi-memo-question@v0.2.0`) freezes that tag: `pi update` will not move it, re-run `pi install` with the new tag.
 
-> **Warning — load it from one source only.** If you already load this package from a local path
-> (`settings.json` → `"packages": ["../../code/personal/pi-memo-question"]`, `-e <path>`, or `file:../pi-memo-question`
-> in pi-memo-subagents), do **not** also install the git source: pi identifies packages by repo URL or absolute path,
-> so the same `question` tool would be loaded twice. Remove one of the two.
+> **Warning — load it from one source only.** If you already load this package from a local checkout
+> (a path in `settings.json` `packages`, `pi -e <path>`, or a `file:` dependency), do **not** also install the git
+> source: pi identifies packages by repo URL or absolute path, so the same `question` tool could be loaded twice.
+> Remove one of the two. The same applies to the copy that pi-memo-subagents pulls in as a dependency: its runtime
+> loads that copy by real path, which differs from the one `pi install` creates.
 
 ## Releasing (maintainers)
 
@@ -58,4 +61,4 @@ npm test
 
 The tests need the pi host packages (`@earendil-works/pi-coding-agent`, `@earendil-works/pi-tui`, `typebox`).
 `test/host-aliases.mjs` finds them via `PI_HOST_DIR=<path of pi-coding-agent>`, then packages installed in
-`node_modules` (what CI does), then the Homebrew global install.
+`node_modules` (what CI does); if neither is found it fails with an explicit message.

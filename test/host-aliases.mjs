@@ -1,8 +1,8 @@
 // Run native Node tests with the host packages Pi's extension loader provides.
 // Host location, first match wins:
 //   1. PI_HOST_DIR (directory of @earendil-works/pi-coding-agent) -> aliased
-//   2. host packages installed next to the repo (CI: npm install --no-save) -> plain Node resolution
-//   3. Homebrew global install (macOS) -> aliased
+//   2. host packages installed in node_modules (CI: npm install --no-save) -> plain Node resolution
+// Otherwise fail with an explicit message.
 import { registerHooks, createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 
@@ -19,8 +19,8 @@ function installedLocally() {
 	}
 }
 
-if (process.env.PI_HOST_DIR || !installedLocally()) {
-	const dir = (process.env.PI_HOST_DIR ?? "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent").replace(/\/?$/, "/");
+if (process.env.PI_HOST_DIR) {
+	const dir = process.env.PI_HOST_DIR.replace(/\/?$/, "/");
 	const require = createRequire(`${dir}package.json`);
 	const aliases = {
 		[HOST_PKG]: `${dir}dist/index.js`,
@@ -32,4 +32,9 @@ if (process.env.PI_HOST_DIR || !installedLocally()) {
 			return nextResolve(aliases[specifier] ? pathToFileURL(aliases[specifier]).href : specifier, context);
 		},
 	});
+} else if (!installedLocally()) {
+	throw new Error(
+		`Host packages not found. Either run: npm install --no-save ${HOST_PKG} @earendil-works/pi-tui typebox\n` +
+			`or set PI_HOST_DIR to the directory of ${HOST_PKG} (e.g. $(npm root -g)/${HOST_PKG}).`,
+	);
 }

@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
       # Host packages normally provided by pi at runtime; needed only to run the tests.
       - run: npm install --no-save --no-package-lock --no-audit --no-fund @earendil-works/pi-coding-agent @earendil-works/pi-tui typebox
       - run: npm test
