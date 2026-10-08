@@ -1,7 +1,7 @@
 /**
  * `question` tool: one question to the user with options (recommended first), optional per-option note
  * (Tab) and free answer. The only question tool: loaded by the main agent (settings package or `-e`) and
- * by every memo-subagents child that may ask (the runtime adds it with `-e`).
+ * by every pi-memo-subagents child that may ask (the runtime adds it with `-e`).
  * While the dialog is open it emits `memo-question` and `herdr:blocked` (see src/events.ts).
  */
 import { randomUUID } from "node:crypto";

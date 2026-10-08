@@ -1,7 +1,7 @@
 {
   "name": "pi-memo-question",
   "version": "0.1.0",
-  "description": "The question tool shared by the main pi agent, memo-subagents and pi-issue-round children",
+  "description": "The question tool shared by the main pi agent, pi-memo-subagents and pi-issue-round children",
   "keywords": ["pi-package"],
   "license": "MIT",
   "author": "Federico Alunni",

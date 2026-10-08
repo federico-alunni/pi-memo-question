@@ -2,7 +2,7 @@
  * Events emitted on `pi.events` by the `question` tool, for other extensions of the same pi process.
  *
  * - `memo-question`: once with `pending: true` when the dialog opens, once with `pending: false` when it
- *   closes (`answer` is the chosen label or free text, null if cancelled/aborted). memo-subagents' child
+ *   closes (`answer` is the chosen label or free text, null if cancelled/aborted). pi-memo-subagents' child
  *   extension turns these into `question.json`, so the parent sees the pending question and moves focus.
  * - `herdr:blocked`: `{ active: true, label }` / `{ active: false }`, read by the Herdr agent-state extension.
  */
