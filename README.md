@@ -13,6 +13,28 @@ It is the **only** question tool of the memo extensions:
 
 pi-memo-subagents depends on it (`"pi-memo-question": "file:../pi-memo-question"`).
 
+## Install (collaborators)
+
+```bash
+pi install git:github.com/federico-alunni/pi-memo-question   # latest main
+pi update --extensions                                       # pull new versions
+```
+
+Without a `@ref` pi follows `main`, so `pi update --extensions` picks up new commits. Pinning a release
+(`…pi-memo-question@v0.2.0`) freezes that tag: `pi update` will not move it, re-run `pi install` with the new tag.
+
+> **Warning — load it from one source only.** If you already load this package from a local path
+> (`settings.json` → `"packages": ["../../code/personal/pi-memo-question"]`, `-e <path>`, or `file:../pi-memo-question`
+> in pi-memo-subagents), do **not** also install the git source: pi identifies packages by repo URL or absolute path,
+> so the same `question` tool would be loaded twice. Remove one of the two.
+
+## Releasing (maintainers)
+
+1. Bump `version` in `package.json`, commit, push to `main` (CI runs `npm test`).
+2. Tag and push: `git tag vX.Y.Z && git push origin vX.Y.Z`.
+3. `.github/workflows/release.yml` checks that the tag is on `main` and equals `package.json` version, runs the
+   tests and creates the GitHub Release. Nothing is built or published elsewhere: pi reads the source from git.
+
 ## Events
 
 While the dialog is open the tool emits on `pi.events` (see `src/events.ts`):
@@ -33,3 +55,7 @@ options return an error text without opening the dialog.
 ```bash
 npm test
 ```
+
+The tests need the pi host packages (`@earendil-works/pi-coding-agent`, `@earendil-works/pi-tui`, `typebox`).
+`test/host-aliases.mjs` finds them via `PI_HOST_DIR=<path of pi-coding-agent>`, then packages installed in
+`node_modules` (what CI does), then the Homebrew global install.
