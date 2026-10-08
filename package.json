@@ -1,0 +1,31 @@
+{
+  "name": "pi-memo-question",
+  "version": "0.1.0",
+  "description": "The question tool shared by the main pi agent, memo-subagents and pi-issue-round children",
+  "keywords": ["pi-package"],
+  "license": "MIT",
+  "author": "Federico Alunni",
+  "private": true,
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/federico-alunni/pi-memo-question"
+  },
+  "exports": {
+    "./extension": "./extensions/question.ts",
+    "./dialog": "./src/dialog.ts",
+    "./events": "./src/events.ts",
+    "./package.json": "./package.json"
+  },
+  "pi": {
+    "extensions": ["./extensions/question.ts"]
+  },
+  "scripts": {
+    "test": "node --import ./test/host-aliases.mjs --test test/*.test.ts"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
+    "typebox": "*"
+  }
+}
