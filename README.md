@@ -62,6 +62,10 @@ the user and `to: "parent"` says so in the result.
   state); the result reads `The parent agent selected: 2. Push` and `details.answeredBy` names who answered.
 - `{ kind: "user", reason }`: the dialog opens as usual and the result says why the user answered.
 
+The extension also publishes its dialog component on `globalThis[Symbol.for("pi-memo-question/dialog")]`
+(`{ questionComponent }`), for a host that shows a question itself (e.g. a parent session escalating a subagent's
+question to the user) without importing a copy.
+
 ## Results
 
 `User selected: 2. Push` (plus `\nUser note: …`), `User wrote: …`, `User cancelled the selection`; no UI or no

@@ -6,7 +6,7 @@
  * without importing this package (the key is a registered symbol), so there is always exactly one `question` tool,
  * the one of the installed package. Without a router every question goes to the user, as before.
  */
-import type { QuestionAnswer, QuestionOption } from "./dialog.ts";
+import type { QuestionAnswer, QuestionOption, questionComponent } from "./dialog.ts";
 
 export const QUESTION_ROUTER_KEY = Symbol.for("pi-memo-question/router");
 
@@ -44,4 +44,15 @@ export function currentRouter(): QuestionRouter | undefined {
 
 export function setRouter(router: QuestionRouter | undefined): void {
 	(globalThis as Record<symbol, unknown>)[QUESTION_ROUTER_KEY] = router;
+}
+
+/**
+ * The dialog of the installed package, for hosts that show a question themselves (e.g. a parent session that
+ * escalates a subagent's question to the user). Published on `globalThis[Symbol.for("pi-memo-question/dialog")]`
+ * by the extension when it loads, so a host never imports its own copy.
+ */
+export const QUESTION_DIALOG_KEY = Symbol.for("pi-memo-question/dialog");
+
+export interface QuestionDialogApi {
+	questionComponent: typeof questionComponent;
 }

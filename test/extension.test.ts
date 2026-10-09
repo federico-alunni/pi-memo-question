@@ -131,3 +131,9 @@ test("a withdrawn parent question is cancelled", async (t) => {
 	assert.match(result.content[0].text, /withdrawn/);
 	assert.equal(result.details.answer, null);
 });
+
+test("the extension publishes its dialog for hosts", async () => {
+	load();
+	const api = (globalThis as any)[Symbol.for("pi-memo-question/dialog")];
+	assert.equal(typeof api.questionComponent, "function");
+});

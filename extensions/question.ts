@@ -12,8 +12,8 @@ import { answerText, FREE_ANSWER, questionComponent } from "../src/dialog.ts";
 import type { QuestionAnswer, QuestionOption } from "../src/dialog.ts";
 import { QUESTION_EVENT } from "../src/events.ts";
 import type { QuestionEvent } from "../src/events.ts";
-import { currentRouter } from "../src/router.ts";
-import type { QuestionTarget } from "../src/router.ts";
+import { currentRouter, QUESTION_DIALOG_KEY } from "../src/router.ts";
+import type { QuestionDialogApi, QuestionTarget } from "../src/router.ts";
 
 interface QuestionDetails {
 	question: string;
@@ -55,6 +55,7 @@ const QuestionParams = Type.Object({
 });
 
 export default function question(pi: ExtensionAPI) {
+	(globalThis as Record<symbol, unknown>)[QUESTION_DIALOG_KEY] = { questionComponent } satisfies QuestionDialogApi;
 	pi.registerTool({
 		name: "question",
 		label: "Question",
