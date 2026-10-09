@@ -12,6 +12,8 @@ import { answerText, FREE_ANSWER, questionComponent } from "../src/dialog.ts";
 import type { QuestionAnswer, QuestionOption } from "../src/dialog.ts";
 import { QUESTION_EVENT } from "../src/events.ts";
 import type { QuestionEvent } from "../src/events.ts";
+import { currentRouter } from "../src/router.ts";
+import type { QuestionTarget } from "../src/router.ts";
 
 interface QuestionDetails {
 	question: string;
@@ -19,6 +21,20 @@ interface QuestionDetails {
 	answer: string | null;
 	wasCustom?: boolean;
 	note?: string;
+	/** Set when someone other than the user answered (e.g. "the parent agent"). */
+	answeredBy?: string;
+}
+
+/** The result text when `by` (not the user) answered. */
+export function answeredText(answer: QuestionAnswer | null, by: string, note?: string): string {
+	const who = by.charAt(0).toUpperCase() + by.slice(1);
+	let text = !answer
+		? `${who} did not choose an option`
+		: answer.custom
+			? `${who} wrote: ${answer.answer}`
+			: `${who} selected: ${answer.index}. ${answer.answer}${answer.note ? `\n${who} note: ${answer.note}` : ""}`;
+	if (note?.trim() && !(answer && !answer.custom && answer.note)) text += `\nNote: ${note.trim()}`;
+	return text;
 }
 
 const QuestionParams = Type.Object({
@@ -30,6 +46,12 @@ const QuestionParams = Type.Object({
 		}),
 		{ description: "Options for the user to choose from" },
 	),
+	to: Type.Optional(
+		Type.Union([Type.Literal("user"), Type.Literal("parent")], {
+			description:
+				'Who should answer. "parent": the agent that started you, when it can know the answer (decisions and context of its session or plan); it may forward the question to the user. "user": the human, for what only they can decide or know. Omitted: the default of this session (the user unless you run as a subagent). Without a parent agent the user is asked.',
+		}),
+	),
 });
 
 export default function question(pi: ExtensionAPI) {
@@ -37,27 +59,62 @@ export default function question(pi: ExtensionAPI) {
 		name: "question",
 		label: "Question",
 		description:
-			"Ask the user a question and let them pick from options. Use when you need user input to proceed. Every question MUST always have a recommended option as the first choice, explicitly labeled with '(Recommended)'. Add a short description per option when useful. The user may also type a free answer or attach a note to an option.",
+			"Ask a question and let the user (or, with to: \"parent\", the agent that started you) pick from options. Use when you need input to proceed. Every question MUST always have a recommended option as the first choice, explicitly labeled with '(Recommended)'. Add a short description per option when useful. The user may also type a free answer or attach a note to an option.",
 		parameters: QuestionParams,
 		executionMode: "sequential",
 
 		async execute(_toolCallId, params, signal, _onUpdate, ctx) {
 			const options = params.options.map((o) => o.label);
+			const router = currentRouter();
+			const target: QuestionTarget = params.to ?? router?.defaultTarget() ?? "user";
 			const details = (answer: string | null, extra: Partial<QuestionDetails> = {}): QuestionDetails => ({
 				question: params.question,
 				options,
 				answer,
 				...extra,
 			});
+			if (params.options.length === 0)
+				return { content: [{ type: "text", text: "Error: No options provided" }], details: details(null) };
+
+			const id = randomUUID();
+			// The parent first (when there is one and the call is for it); the user's dialog otherwise or as fallback.
+			let fallback: string | undefined;
+			if (target === "parent" && !router) fallback = "no parent agent to ask: the user answered";
+			if (target === "parent" && router) {
+				let outcome;
+				try {
+					outcome = await router.askParent(
+						{ id, question: params.question, options: params.options as QuestionOption[] },
+						signal,
+					);
+				} catch (error) {
+					outcome = { kind: "user" as const, reason: error instanceof Error ? error.message : String(error) };
+				}
+				if (outcome.kind === "answered")
+					return {
+						content: [{ type: "text", text: answeredText(outcome.answer, outcome.by, outcome.note) }],
+						details: {
+							...details(outcome.answer?.answer ?? null, {
+								answeredBy: outcome.by,
+								...(outcome.answer ? { wasCustom: outcome.answer.custom } : {}),
+								...(outcome.answer && !outcome.answer.custom && outcome.answer.note ? { note: outcome.answer.note } : {}),
+							}),
+							...(outcome.details ?? {}),
+						},
+					};
+				if (outcome.kind === "cancelled" || signal?.aborted)
+					return {
+						content: [{ type: "text", text: "The question was withdrawn: the turn was aborted" }],
+						details: details(null),
+					};
+				fallback = outcome.reason ? `the parent agent could not answer (${outcome.reason}): the user answered` : "the parent agent could not answer: the user answered";
+			}
 			if (!ctx.hasUI)
 				return {
 					content: [{ type: "text", text: "Error: UI not available (running in non-interactive mode)" }],
 					details: details(null),
 				};
-			if (params.options.length === 0)
-				return { content: [{ type: "text", text: "Error: No options provided" }], details: details(null) };
 
-			const id = randomUUID();
 			const emit = (event: QuestionEvent) => pi.events.emit(QUESTION_EVENT, event);
 			emit({ id, question: params.question, pending: true });
 			pi.events.emit("herdr:blocked", { active: true, label: params.question });
@@ -82,7 +139,7 @@ export default function question(pi: ExtensionAPI) {
 			}
 
 			return {
-				content: [{ type: "text", text: answerText(result) }],
+				content: [{ type: "text", text: fallback ? `${answerText(result)}\n(${fallback})` : answerText(result) }],
 				details: !result
 					? details(null)
 					: result.custom

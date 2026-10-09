@@ -1,6 +1,6 @@
 {
   "name": "pi-memo-question",
-  "version": "0.1.0",
+  "version": "0.2.0-beta.1",
   "description": "The question tool shared by the main pi agent, pi-memo-subagents and pi-issue-round children",
   "keywords": ["pi-package"],
   "license": "MIT",
@@ -15,6 +15,7 @@
     "./extension": "./extensions/question.ts",
     "./dialog": "./src/dialog.ts",
     "./events": "./src/events.ts",
+    "./router": "./src/router.ts",
     "./package.json": "./package.json"
   },
   "pi": {

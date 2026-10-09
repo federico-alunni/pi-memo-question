@@ -69,3 +69,65 @@ test("abort closes the dialog as cancelled; no UI and no options never open it",
 	assert.match((await tool.execute("t", { question: "?", options: [] }, undefined, undefined, ctx([]))).content[0].text, /No options/);
 	assert.equal(events.length, before);
 });
+
+import { setRouter } from "../src/router.ts";
+import type { QuestionRouter, RouteOutcome } from "../src/router.ts";
+
+function router(defaultTarget: "user" | "parent", outcome: RouteOutcome | (() => Promise<RouteOutcome>)) {
+	const asked: any[] = [];
+	const r: QuestionRouter = {
+		defaultTarget: () => defaultTarget,
+		askParent: async (q) => {
+			asked.push(q);
+			return typeof outcome === "function" ? outcome() : outcome;
+		},
+	};
+	setRouter(r);
+	return asked;
+}
+
+test("to: parent is answered by the router without the dialog or question events", async (t) => {
+	t.after(() => setRouter(undefined));
+	const asked = router("user", { kind: "answered", answer: { answer: "Push", custom: false, index: 2 }, by: "the parent agent", note: "tests are green" });
+	const { tool, events } = load();
+	const result = await tool.execute("t1", { ...params, to: "parent" }, undefined, undefined, { hasUI: false, ui: {} });
+	assert.equal(result.content[0].text, "The parent agent selected: 2. Push\nNote: tests are green");
+	assert.equal(result.details.answeredBy, "the parent agent");
+	assert.equal(result.details.answer, "Push");
+	assert.equal(asked[0].question, "Push?");
+	assert.deepEqual(events, []);
+});
+
+test("the router's default target applies without `to`; `to: user` always opens the dialog", async (t) => {
+	t.after(() => setRouter(undefined));
+	const asked = router("parent", { kind: "answered", answer: { answer: "free", custom: true }, by: "the parent agent" });
+	const { tool } = load();
+	assert.equal((await tool.execute("t1", params, undefined, undefined, ctx([]))).content[0].text, "The parent agent wrote: free");
+	const user = await tool.execute("t2", { ...params, to: "user" }, undefined, undefined, ctx([ENTER]));
+	assert.equal(user.content[0].text, "User selected: 1. Merge only (Recommended)");
+	assert.equal(asked.length, 1);
+});
+
+test("a parent that cannot answer falls back to the user's dialog, and says so", async (t) => {
+	t.after(() => setRouter(undefined));
+	router("parent", { kind: "user", reason: "timeout" });
+	const { tool, events } = load();
+	const result = await tool.execute("t1", params, undefined, undefined, ctx([ENTER]));
+	assert.equal(result.content[0].text, "User selected: 1. Merge only (Recommended)\n(the parent agent could not answer (timeout): the user answered)");
+	assert.equal(events[0][0], QUESTION_EVENT);
+});
+
+test("without a router `to: parent` asks the user", async () => {
+	const { tool } = load();
+	const result = await tool.execute("t1", { ...params, to: "parent" }, undefined, undefined, ctx([ENTER]));
+	assert.match(result.content[0].text, /^User selected: 1\..*\n\(no parent agent to ask: the user answered\)$/);
+});
+
+test("a withdrawn parent question is cancelled", async (t) => {
+	t.after(() => setRouter(undefined));
+	router("parent", { kind: "cancelled" });
+	const { tool } = load();
+	const result = await tool.execute("t1", params, undefined, undefined, ctx([]));
+	assert.match(result.content[0].text, /withdrawn/);
+	assert.equal(result.details.answer, null);
+});
