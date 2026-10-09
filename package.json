@@ -1,7 +1,7 @@
 {
   "name": "pi-memo-question",
-  "version": "0.2.0",
-  "description": "The question tool shared by the main pi agent, pi-memo-subagents and pi-issue-round children",
+  "version": "0.3.0",
+  "description": "The question dialog of the memo extensions: the question tool for the model and ask() for extension code",
   "keywords": ["pi-package"],
   "license": "MIT",
   "author": "Federico Alunni",
@@ -13,6 +13,7 @@
   },
   "exports": {
     "./extension": "./extensions/question.ts",
+    "./ask": "./src/ask.ts",
     "./dialog": "./src/dialog.ts",
     "./events": "./src/events.ts",
     "./router": "./src/router.ts",
@@ -22,7 +23,7 @@
     "extensions": ["./extensions/question.ts"]
   },
   "scripts": {
-    "test": "node --import ./test/host-aliases.mjs --test \"test/*.test.ts\""
+    "test": "node --import ./test/host-aliases.mjs --test --test-timeout=30000 \"test/*.test.ts\""
   },
   "engines": {
     "node": ">=22.18"

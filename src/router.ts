@@ -6,6 +6,7 @@
  * without importing this package (the key is a registered symbol), so there is always exactly one `question` tool,
  * the one of the installed package. Without a router every question goes to the user, as before.
  */
+import type { ask, askComponent } from "./ask.ts";
 import type { QuestionAnswer, QuestionOption, questionComponent } from "./dialog.ts";
 
 export const QUESTION_ROUTER_KEY = Symbol.for("pi-memo-question/router");
@@ -55,4 +56,7 @@ export const QUESTION_DIALOG_KEY = Symbol.for("pi-memo-question/dialog");
 
 export interface QuestionDialogApi {
 	questionComponent: typeof questionComponent;
+	/** Since 0.3.0: `ask()` and its dialog component (see src/ask.ts). Never routed to a parent agent. */
+	ask?: typeof ask;
+	askComponent?: typeof askComponent;
 }

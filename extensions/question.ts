@@ -2,16 +2,17 @@
  * `question` tool: one question to the user with options (recommended first), optional per-option note
  * (Tab) and free answer. The only question tool: loaded by the main agent (settings package or `-e`) and
  * by every pi-memo-subagents child that may ask (the runtime adds it with `-e`).
- * While the dialog is open it emits `memo-question` and `herdr:blocked` (see src/events.ts).
+ * A router (src/router.ts) may answer for the parent agent; otherwise the user answers in `ask()` (src/ask.ts)
+ * with one question, free answer and notes on: while the dialog is open it emits `memo-question` and
+ * `herdr:blocked` (see src/events.ts).
  */
 import { randomUUID } from "node:crypto";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
-import { answerText, FREE_ANSWER, questionComponent } from "../src/dialog.ts";
+import { ask, askComponent } from "../src/ask.ts";
+import { answerText, FREE_ANSWER, questionAnswer, questionComponent } from "../src/dialog.ts";
 import type { QuestionAnswer, QuestionOption } from "../src/dialog.ts";
-import { QUESTION_EVENT } from "../src/events.ts";
-import type { QuestionEvent } from "../src/events.ts";
 import { currentRouter, QUESTION_DIALOG_KEY } from "../src/router.ts";
 import type { QuestionDialogApi, QuestionTarget } from "../src/router.ts";
 
@@ -55,7 +56,7 @@ const QuestionParams = Type.Object({
 });
 
 export default function question(pi: ExtensionAPI) {
-	(globalThis as Record<symbol, unknown>)[QUESTION_DIALOG_KEY] = { questionComponent } satisfies QuestionDialogApi;
+	(globalThis as Record<symbol, unknown>)[QUESTION_DIALOG_KEY] = { questionComponent, ask, askComponent } satisfies QuestionDialogApi;
 	pi.registerTool({
 		name: "question",
 		label: "Question",
@@ -116,28 +117,15 @@ export default function question(pi: ExtensionAPI) {
 					details: details(null),
 				};
 
-			const emit = (event: QuestionEvent) => pi.events.emit(QUESTION_EVENT, event);
-			emit({ id, question: params.question, pending: true });
-			pi.events.emit("herdr:blocked", { active: true, label: params.question });
-			let result: QuestionAnswer | null = null;
-			try {
-				if (!signal?.aborted)
-					result = await ctx.ui.custom<QuestionAnswer | null>((tui, theme, _kb, done) => {
-						let settled = false;
-						const finish = (r: QuestionAnswer | null) => {
-							if (!settled) {
-								settled = true;
-								done(r);
-							}
-						};
-						// The dialog has no abort option: an aborted turn closes it as cancelled.
-						signal?.addEventListener("abort", () => finish(null), { once: true });
-						return questionComponent(tui, theme, params.question, params.options as QuestionOption[], finish);
-					});
-			} finally {
-				pi.events.emit("herdr:blocked", { active: false });
-				emit({ id, question: params.question, pending: false, answer: result?.answer ?? null });
-			}
+			// The user's dialog is ask() with one question, free answer and notes on (same events, same id as the
+			// router's question). An aborted turn closes it: for the model it is a cancellation, as before.
+			const result = questionAnswer(
+				await ask(
+					ctx,
+					{ title: params.question, questions: [{ id: "question", title: params.question, options: params.options as QuestionOption[] }] },
+					{ signal, pi, id },
+				),
+			);
 
 			return {
 				content: [{ type: "text", text: fallback ? `${answerText(result)}\n(${fallback})` : answerText(result) }],
