@@ -6,7 +6,7 @@
  * without importing this package (the key is a registered symbol), so there is always exactly one `question` tool,
  * the one of the installed package. Without a router every question goes to the user, as before.
  */
-import type { QuestionAnswer, QuestionOption, questionComponent } from "./dialog.ts";
+import type { QuestionAnswer, QuestionOption, questionComponent, questionnaireComponent } from "./dialog.ts";
 
 export const QUESTION_ROUTER_KEY = Symbol.for("pi-memo-question/router");
 
@@ -18,6 +18,8 @@ export interface RoutedQuestion {
 	id: string;
 	question: string;
 	options: QuestionOption[];
+	/** The question allows several options. A host that answers one option may ignore it. */
+	multiple?: boolean;
 }
 
 export type RouteOutcome =
@@ -55,4 +57,5 @@ export const QUESTION_DIALOG_KEY = Symbol.for("pi-memo-question/dialog");
 
 export interface QuestionDialogApi {
 	questionComponent: typeof questionComponent;
+	questionnaireComponent?: typeof questionnaireComponent;
 }

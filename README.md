@@ -1,7 +1,38 @@
 # pi-memo-question
 
-The `question` tool for [pi](https://pi.dev): one question to the user with options (recommended option first),
-a description under each option, an optional note on an option (Tab) and a free answer ("Type something.").
+The `question` tool for [pi](https://pi.dev): one or more questions to the user with options (recommended option
+first), a description under each option, single or multiple choice, an optional note on an option (Tab, single
+choice) and a free answer ("Type something.").
+
+Input: `{ questions: [{ question, header?, options: [{ label, description? }], multiple? }], to? }` with 1 to 9 questions.
+`header` is a very short label (max ~14 characters) for the question's tab when there are several (`Q1`, `Q2`… on absent).
+The list shape is the one other question tools use (Claude Code's AskUserQuestion, opencode's `question`), so viewers
+that read the pi session log, such as [Collie](https://github.com/AltanS/collie), draw each question with its options.
+The pre-0.3 top-level `{ question, options }` is still accepted by `execute` for direct callers (one question).
+
+## Several questions, multiple choice
+
+- **Several questions** are one questionnaire dialog: a tab bar (`▢` open, `▣` answered, `✓ Review`),
+  one page per question and a last **Review** tab that sums up the answers. `←`/`→` or Tab / Shift+Tab
+  move between tabs; answering goes to the next open question; Enter on Review submits (or goes to the first open
+  question); Esc cancels all of it. Notes (Tab) are not available there. On a narrow screen the tabs shrink to
+  numbers. The result has one entry per question, each under `[i/N] question`. Typed text on Review is ignored, so a
+  viewer that can only type text confirms with any text followed by Enter.
+- With `to: "parent"` (or when the parent cannot answer) the questions are asked one at a time, the parent first;
+  cancelling one ends the call and the later ones are not asked. Events (`memo-question`, `herdr:blocked`) are one
+  pair per dialog: for a questionnaire the question reads `first question (+N more)`.
+- **`multiple: true`** makes a question multiple choice: `Space` ticks the pointed option, `Enter` confirms the ticked
+  ones (the pointed one when none is ticked), `Esc` cancels. Notes (Tab) are single-choice only. The free answer row
+  adds text next to the ticked options.
+
+## Typed answers
+
+Besides arrows/Enter/Tab/Esc, typing in the dialog opens the free answer with the typed text. On Enter, a free answer
+that is an option's number (`1`…`N`) or its label (case-insensitive, `(Recommended)` optional) picks that option;
+anything else is a free answer. In a multiple-choice question the text may name several options: `1,3`, `1 3`, `1-3`,
+`docs, tests` (a label containing a comma still matches whole); text that is not all options is a free answer, kept
+next to the ticked options if there are any. This is what makes the dialog answerable from a viewer that can only type
+text and press Enter, such as Collie's reply box on a pi pane (it sends the raw text, then Enter).
 
 It is the **only** question tool of the memo extensions:
 
@@ -68,8 +99,10 @@ question to the user) without importing a copy.
 
 ## Results
 
-`User selected: 2. Push` (plus `\nUser note: …`), `User wrote: …`, `User cancelled the selection`; no UI or no
-options return an error text without opening the dialog.
+`User selected: 2. Push` (plus `\nUser note: …`), `User selected: 1. Lint, 3. Types` for multiple choice (plus
+`\nUser also wrote: …`), `User wrote: …`, `User cancelled the selection`; no UI or no options return an error text
+without opening the dialog. With several questions the results are joined, each under `[i/N] question`, and
+`details.results` holds one entry per question asked.
 
 ## Tests
 
