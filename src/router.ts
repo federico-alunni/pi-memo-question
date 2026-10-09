@@ -7,7 +7,7 @@
  * the one of the installed package. Without a router every question goes to the user, as before.
  */
 import type { ask, askComponent } from "./ask.ts";
-import type { QuestionAnswer, QuestionOption, questionComponent } from "./dialog.ts";
+import type { QuestionAnswer, QuestionOption, questionComponent, questionnaireComponent } from "./dialog.ts";
 
 export const QUESTION_ROUTER_KEY = Symbol.for("pi-memo-question/router");
 
@@ -19,6 +19,8 @@ export interface RoutedQuestion {
 	id: string;
 	question: string;
 	options: QuestionOption[];
+	/** The question allows several options. A host that answers one option may ignore it. */
+	multiple?: boolean;
 }
 
 export type RouteOutcome =
@@ -56,7 +58,8 @@ export const QUESTION_DIALOG_KEY = Symbol.for("pi-memo-question/dialog");
 
 export interface QuestionDialogApi {
 	questionComponent: typeof questionComponent;
-	/** Since 0.3.0: `ask()` and its dialog component (see src/ask.ts). Never routed to a parent agent. */
+	questionnaireComponent?: typeof questionnaireComponent;
+	/** Since 0.3.0: `ask()` and its dialog component (src/ask.ts), for extension code. Never routed to a parent agent. */
 	ask?: typeof ask;
 	askComponent?: typeof askComponent;
 }

@@ -1,7 +1,7 @@
 /**
  * `ask()`: the question dialog called from extension code. The user answers, never the model: the result
- * is structured data for the caller, not text for the model. Same dialog and same events as the `question`
- * tool (which is `ask()` with one question, free answer and notes on).
+ * is structured data for the caller, not text for the model. Same look and same events as the `question`
+ * tool's dialogs (src/dialog.ts); never routed to a parent agent (the router is the tool's only).
  *
  * Events on `opts.pi.events` (without `pi`, none): `memo-question` pending/settled with one unique id, and
  * `herdr:blocked` around the dialog (see src/events.ts).

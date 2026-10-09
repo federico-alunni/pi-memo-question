@@ -1,4 +1,4 @@
-// The one question dialog of the memo extensions: one or more questions (pages), each with a fixed header
+// The dialog of `ask()` (src/ask.ts), for extension code: one or more questions (pages), each with a fixed header
 // (title, context lines), an optional scrollable markdown body, options with descriptions, single or
 // multiple selection, an optional note (Tab) and an optional free answer ("Type something."), plus an
 // optional final review page. Everything fits in the terminal height (tui.terminal.rows, read at every
@@ -18,7 +18,9 @@
 import { Editor, Key, Markdown, matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 import type { EditorTheme, MarkdownTheme, TUI } from "@earendil-works/pi-tui";
 
-export const FREE_ANSWER = "Type something.";
+import { FREE_ANSWER } from "./dialog.ts";
+
+export { FREE_ANSWER };
 /** Default Enter guard (ms) for consent dialogs: any question with `freeAnswer: false`, or a review page. */
 export const DEFAULT_GUARD_MS = 600;
 /** Rows left to pi below the dialog (footer, status). */

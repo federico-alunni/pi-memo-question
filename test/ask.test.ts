@@ -484,11 +484,13 @@ test("question tool: result texts and details unchanged", async () => {
 		ui: { custom: async () => ({ answer: "Push", custom: false, index: 2, note: "from parent" }) },
 	});
 	assert.equal(routed.content[0].text, "User selected: 2. Push\nUser note: from parent");
-	// RPC (custom returns undefined): the select fallback answers the tool.
-	const rpc = await t.execute("t", params, undefined, undefined, {
-		hasUI: true,
-		mode: "rpc",
-		ui: { custom: async () => undefined, select: async (_: string, o: string[]) => o[1] },
-	});
-	assert.equal(rpc.content[0].text, "User selected: 2. Push");
+});
+
+test("the extension publishes ask() and askComponent next to the tool's dialogs", () => {
+	tool();
+	const api = (globalThis as any)[Symbol.for("pi-memo-question/dialog")];
+	assert.equal(api.ask, ask);
+	assert.equal(api.askComponent, askComponent);
+	assert.equal(typeof api.questionComponent, "function");
+	assert.equal(typeof api.questionnaireComponent, "function");
 });

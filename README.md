@@ -1,26 +1,55 @@
 # pi-memo-question
 
-The question dialog of the memo extensions for [pi](https://pi.dev), in two forms:
+The `question` tool for [pi](https://pi.dev): one or more questions to the user with options (recommended option
+first), a description under each option, single or multiple choice, an optional note on an option (Tab, single
+choice) and a free answer ("Type something.").
 
-- the **`question` tool** for the model: one question with options (recommended option first), a description under
-  each option, an optional note on an option (Tab) and a free answer ("Type something."); a router may let the parent
-  agent answer (`to: "parent"`, see [Router](#router-to-parent));
-- **`ask()`** for extension code (`pi-memo-question/ask`): one or more questions in one dialog, multiple choice,
-  scrollable markdown body, final review page, consent guards. The user answers, never the model, never a parent agent.
+Input: `{ questions: [{ question, header?, options: [{ label, description? }], multiple? }], to? }` with 1 to 9 questions.
+`header` is a very short label (max ~14 characters) for the question's tab when there are several (`Q1`, `Q2`… on absent).
+The list shape is the one other question tools use (Claude Code's AskUserQuestion, opencode's `question`), so viewers
+that read the pi session log, such as [Collie](https://github.com/AltanS/collie), draw each question with its options.
+The pre-0.3 top-level `{ question, options }` is still accepted by `execute` for direct callers (one question).
 
-Both use the same dialog and emit the same events: when the user answers, the `question` tool is `ask()` with one
-question, free answer and notes on.
+## Several questions, multiple choice
+
+- **Several questions** are one questionnaire dialog: a tab bar (`▢` open, `▣` answered, `✓ Review`),
+  one page per question and a last **Review** tab that sums up the answers. `←`/`→` or Tab / Shift+Tab
+  move between tabs; answering goes to the next open question; Enter on Review submits (or goes to the first open
+  question); Esc cancels all of it. Notes (Tab) are not available there. On a narrow screen the tabs shrink to
+  numbers. The result has one entry per question, each under `[i/N] question`. Typed text on Review is ignored, so a
+  viewer that can only type text confirms with any text followed by Enter.
+- With `to: "parent"` (or when the parent cannot answer) the questions are asked one at a time, the parent first;
+  cancelling one ends the call and the later ones are not asked. Events (`memo-question`, `herdr:blocked`) are one
+  pair per dialog: for a questionnaire the question reads `first question (+N more)`.
+- **`multiple: true`** makes a question multiple choice: `Space` ticks the pointed option, `Enter` confirms the ticked
+  ones (the pointed one when none is ticked), `Esc` cancels. Notes (Tab) are single-choice only. The free answer row
+  adds text next to the ticked options.
+
+## Typed answers
+
+Besides arrows/Enter/Tab/Esc, typing in the dialog opens the free answer with the typed text. On Enter, a free answer
+that is an option's number (`1`…`N`) or its label (case-insensitive, `(Recommended)` optional) picks that option;
+anything else is a free answer. In a multiple-choice question the text may name several options: `1,3`, `1 3`, `1-3`,
+`docs, tests` (a label containing a comma still matches whole); text that is not all options is a free answer, kept
+next to the ticked options if there are any. This is what makes the dialog answerable from a viewer that can only type
+text and press Enter, such as Collie's reply box on a pi pane (it sends the raw text, then Enter).
+
+For extension code there is **`ask()`** (`pi-memo-question/ask`, see [below](#ask--questions-from-extension-code)):
+the same kind of dialog, called by a tool or command instead of the model, with a structured result. The user
+answers, never the model, never a parent agent. It adds what consent decisions need: a fixed header with context
+lines, a scrollable markdown body, a preselected option, a review page that depends on the answers, an Enter guard
+and a select fallback without custom UI.
 
 It is the **only** question dialog of the memo extensions:
 
 | Who | How it gets it |
 |---|---|
 | main agent (`pi`) | installed as a pi package, see [Install](#install-collaborators) |
-| `pi-ir` | `pi -e <path of the installed package>` (`pi list` shows it); its own decisions call `ask()` (see [ask()](#ask--questions-from-extension-code)) |
+| `pi-ir` | `pi -e <path of the installed package>` (`pi list` shows it); its own decisions call `ask()` |
 | [pi-memo-subagents](https://github.com/federico-alunni/pi-memo-subagents) children (`subagent` tool, Issue Round agents) | the installed package: profile children load it with the profile, isolated ones with `-e <installed package>/extensions/question.ts`. pi loads the same path once, so it never conflicts |
 
 Every agent uses the **installed** package (updated with `pi update --extensions`); nothing bundles a copy of it.
-`exports` exposes `./extension`, `./ask`, `./dialog`, `./events`, `./router` and `./package.json`.
+`exports` exposes `./extension`, `./ask`, `./dialog`, `./events`, `./router` and `./package.json` (types and tests).
 
 ## Install (collaborators)
 
@@ -146,11 +175,11 @@ becomes one more select. Without any UI (`!ctx.hasUI`), `ask()` returns `cancell
 
 ## Events
 
-While a dialog (tool or `ask()`) is open, it emits on `pi.events` (see `src/events.ts`):
+While a dialog (the tool's or `ask()`'s) is open, it emits on `pi.events` (see `src/events.ts`):
 
-- `memo-question` — `{ id, question, pending: true }`, then `{ id, question, pending: false, answer }` with the same
-  unique `id` (`answer`: chosen label or free text, for several questions joined with ` | `; `null` if cancelled or
-  aborted; `audience: "user"` when set). pi-memo-subagents' child extension
+- `memo-question` — `{ id, question, pending: true }`, then `{ id, question, pending: false, answer }`
+  (`answer`: chosen label or free text, several answers joined with ` | `, `null` if cancelled or aborted; `ask()`
+  adds `audience: "user"` when set). pi-memo-subagents' child extension
   writes it to `question.json`, so the parent shows the pending question (❓) and Issue Round moves the focus to the
   pane.
 - `herdr:blocked` — `{ active: true, label }` / `{ active: false }`, for the Herdr agent-state extension.
@@ -171,16 +200,15 @@ the user and `to: "parent"` says so in the result.
 - `{ kind: "user", reason }`: the dialog opens as usual and the result says why the user answered.
 
 The extension also publishes its dialog component on `globalThis[Symbol.for("pi-memo-question/dialog")]`
-(`{ questionComponent, ask, askComponent }`), for a host that shows a question itself (e.g. a parent session escalating a subagent's
-question to the user) without importing a copy.
+(`{ questionComponent, questionnaireComponent, ask, askComponent }`), for a host that shows a question itself (e.g. a
+parent session escalating a subagent's question to the user) without importing a copy.
 
-## `question` tool results
+## Results
 
-Unchanged: `User selected: 2. Push` (plus `\nUser note: …`), `User wrote: …`, `User cancelled the selection` (also
-when the turn is aborted); no UI or no options return an error text without opening the dialog. Without custom UI
-(RPC) the user answers through the `ctx.ui.select` fallback of `ask()`. `pi-memo-question/dialog` still exports
-`questionComponent`, `answerText`, `FREE_ANSWER` and the `QuestionAnswer` type (plus `questionAnswer`, which converts
-an `ask()` result).
+`User selected: 2. Push` (plus `\nUser note: …`), `User selected: 1. Lint, 3. Types` for multiple choice (plus
+`\nUser also wrote: …`), `User wrote: …`, `User cancelled the selection`; no UI or no options return an error text
+without opening the dialog. With several questions the results are joined, each under `[i/N] question`, and
+`details.results` holds one entry per question asked.
 
 ## Tests
 
