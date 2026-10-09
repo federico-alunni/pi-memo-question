@@ -1,6 +1,6 @@
 {
   "name": "pi-memo-question",
-  "version": "0.2.0-beta.2",
+  "version": "0.2.0",
   "description": "The question tool shared by the main pi agent, pi-memo-subagents and pi-issue-round children",
   "keywords": ["pi-package"],
   "license": "MIT",
