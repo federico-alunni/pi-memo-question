@@ -133,7 +133,7 @@ test("multiple choice: typed answers name several options, free text goes next t
 	// The recorded multi answer shows a check on its ticked options and on the free answer row.
 	const recorded = questionComponent(tui, theme, "Which checks?", checks, () => {}, {
 		multiple: true,
-		answered: () => ({ answer: "Lint (Recommended), superman", custom: false, multi: true, indexes: [0], labels: ["Lint (Recommended)"], other: "superman" }),
+		answered: () => ({ answer: "Lint (Recommended), superman", custom: false, multi: true, indexes: [1], labels: ["Lint (Recommended)"], other: "superman" }),
 	});
 	const rec = recorded.render(80).join("\n");
 	assert.match(rec, /1\. Lint \(Recommended\)[^\n]*✓/);
