@@ -405,8 +405,10 @@ export function askComponent(
 			editor.setText("");
 		} else if (matchesKey(data, Key.enter)) {
 			if (Date.now() < guardUntil) return;
-			if (row.other) editing = "free";
-			else {
+			if (row.other) {
+				editing = "free";
+				if (p.answer?.custom) editor.setText(p.answer.custom);
+			} else {
 				answerPage(p);
 				if (settled) return;
 			}
@@ -472,8 +474,9 @@ export function askComponent(
 		const groups = p.rows.map((o, i) => {
 			const selected = i === p.cursor;
 			const box = p.multi && !o.other ? (p.checked.has(i) ? "[x] " : "[ ] ") : "";
-			const mark = multiPage && !p.multi && answered.has(i) ? " ✓" : "";
-			const label = `${box}${i + 1}. ${o.label}${o.other && editing === "free" ? " ✎" : ""}${mark}`;
+			const mark = multiPage && ((!p.multi && answered.has(i)) || (o.other && p.answer?.custom !== undefined)) ? " ✓" : "";
+			const text = o.other && p.answer?.custom && editing !== "free" ? `${o.label} (${p.answer.custom})` : o.label;
+			const label = `${box}${i + 1}. ${text}${o.other && editing === "free" ? " ✎" : ""}${mark}`;
 			const lines = wrap(selected ? theme.fg("accent", "> ") : "  ", theme.fg(selected ? "accent" : "text", label));
 			if (o.description) lines.push(...wrap("     ", theme.fg("muted", o.description)));
 			return lines;

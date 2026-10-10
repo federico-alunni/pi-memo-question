@@ -137,8 +137,14 @@ test("multiple choice: typed answers name several options, free text goes next t
 	});
 	const rec = recorded.render(80).join("\n");
 	assert.match(rec, /1\. Lint \(Recommended\)[^\n]*✓/);
-	assert.match(rec, /Type something\.[^\n]*✓/);
+	assert.match(rec, /Type something\. \(superman\)[^\n]*✓/);
 	assert.doesNotMatch(rec, /2\. Tests[^\n]*✓/);
+	// Re-opening the free answer row to edit prefills the editor with the recorded text.
+	recorded.handleInput(DOWN);
+	recorded.handleInput(DOWN);
+	recorded.handleInput(DOWN);
+	recorded.handleInput(ENTER);
+	assert.match(recorded.render(80).join("\n"), /superman/);
 
 	d = openMulti();
 	d.type("nothing fits", ENTER); // nothing ticked: a plain free answer

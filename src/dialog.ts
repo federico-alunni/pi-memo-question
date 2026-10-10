@@ -208,6 +208,8 @@ export function questionComponent(
 			if (all[index].other) {
 				editing = true;
 				noting = false;
+				const cur = recordedOther();
+				if (cur) editor.setText(cur);
 			} else if (multiple) {
 				const picks = ticked.size ? [...ticked].sort((a, b) => a - b) : [index];
 				return finish(multiAnswer(picks));
@@ -232,6 +234,14 @@ export function questionComponent(
 		return a.index === i + 1;
 	}
 
+	function recordedOther(): string | undefined {
+		const a = settings.answered?.();
+		if (!a) return undefined;
+		if (a.custom) return a.answer;
+		if ("multi" in a) return a.other;
+		return undefined;
+	}
+
 	/** The question, its options and the answer field: everything but the frame and the footer. */
 	function body(w: number): string[] {
 		const lines: string[] = [];
@@ -239,10 +249,12 @@ export function questionComponent(
 		add(" ", theme.fg("text", question));
 		if (multiple) add(" ", theme.fg("muted", "Pick one or more options."));
 		lines.push("");
+		const other = recordedOther();
 		all.forEach((o, i) => {
 			const selected = i === index;
 			const box = multiple ? (o.other ? "    " : ticked.has(i) ? "[x] " : "[ ] ") : "";
-			const label = `${box}${i + 1}. ${o.label}${o.other && editing && !noting ? " ✎" : ""}`;
+			const text = o.other && other && !editing ? `${o.label} (${other})` : o.label;
+			const label = `${box}${i + 1}. ${text}${o.other && editing && !noting ? " ✎" : ""}`;
 			add(
 				selected ? theme.fg("accent", "> ") : "  ",
 				theme.fg(selected ? "accent" : "text", label) + (isRecorded(i) ? theme.fg("success", " ✓") : ""),
