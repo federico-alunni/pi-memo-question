@@ -130,6 +130,16 @@ test("multiple choice: typed answers name several options, free text goes next t
 	]);
 	assert.equal(answerText(d.results[0]), "User selected: 1. Lint (Recommended)\nUser also wrote: also docs");
 
+	// The recorded multi answer shows a check on its ticked options and on the free answer row.
+	const recorded = questionComponent(tui, theme, "Which checks?", checks, () => {}, {
+		multiple: true,
+		answered: () => ({ answer: "Lint (Recommended), superman", custom: false, multi: true, indexes: [0], labels: ["Lint (Recommended)"], other: "superman" }),
+	});
+	const rec = recorded.render(80).join("\n");
+	assert.match(rec, /1\. Lint \(Recommended\)[^\n]*✓/);
+	assert.match(rec, /Type something\.[^\n]*✓/);
+	assert.doesNotMatch(rec, /2\. Tests[^\n]*✓/);
+
 	d = openMulti();
 	d.type("nothing fits", ENTER); // nothing ticked: a plain free answer
 	assert.deepEqual(d.results, [{ answer: "nothing fits", custom: true }]);

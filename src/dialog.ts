@@ -228,7 +228,7 @@ export function questionComponent(
 		const a = settings.answered?.();
 		if (!a) return false;
 		if (a.custom) return all[i].other === true;
-		if ("multi" in a) return false;
+		if ("multi" in a) return all[i].other === true ? a.other !== undefined : a.indexes.includes(i);
 		return a.index === i + 1;
 	}
 
