@@ -1,6 +1,6 @@
 {
   "name": "pi-memo-question",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "The question dialog of the memo extensions: the question tool for the model and ask() for extension code",
   "keywords": ["pi-package"],
   "license": "MIT",
