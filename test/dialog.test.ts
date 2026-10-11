@@ -191,15 +191,18 @@ test("questionnaire: a tab per question and a Review tab, answering moves to the
 	assert.deepEqual(d.outcome().map((a: any) => a.answer), ["Merge (Recommended)", "Lint (Recommended), Types, strict", "No"]);
 });
 
-test("questionnaire: tabs move with arrows and Tab, answered tabs keep their marks, ticks and answers", () => {
+test("questionnaire: tabs move with arrows, answered tabs keep their marks, ticks and answers", () => {
 	const d = openQuestionnaire();
 	d.type(DOWN, ENTER, SPACE, ENTER); // Q1 = 2, Q2 = [1]
 	d.type(LEFT);
 	assert.match(d.screen(), /Which checks\?[\s\S]*\[x\] 1\. Lint/);
-	d.type(SHIFT_TAB);
+	d.type(SHIFT_TAB, TAB); // neither changes tab (Tab does nothing on a multiple-choice question)
+	assert.match(d.screen(), /Which checks\?/);
+	assert.doesNotMatch(d.screen(), /note \/ comment/);
+	d.type(LEFT);
 	assert.match(d.screen(), /Which base\?/);
 	assert.match(d.screen(), /> 2\. Only 739e432 \u2713/); // the recorded answer is marked
-	d.type(RIGHT, TAB, TAB); // Q2, Q3, Review
+	d.type(RIGHT, RIGHT, RIGHT); // Q2, Q3, Review
 	assert.match(d.screen(), /Review your answers/);
 	d.type(RIGHT); // wraps around to the first tab
 	assert.match(d.screen(), /Which base\?/);
@@ -239,6 +242,31 @@ test("questionnaire: typed answers per tab, arrows edit the text and do not chan
 	assert.match(d.screen(), /3\. Q3 +\(wrote\) something else/);
 	d.type(ENTER);
 	assert.deepEqual(d.outcome().map((a: any) => a.answer), ["Only 739e432", "Lint (Recommended), Types, strict", "something else"]);
+});
+
+test("questionnaire: Tab adds a note to an option, as in a single question", () => {
+	const d = openQuestionnaire();
+	assert.match(d.screen(), /Tab note/);
+	assert.ok(d.screen().split("\n").every((l) => l.length <= 80));
+	d.type(DOWN, TAB);
+	assert.match(d.screen(), /Which base\?[\s\S]*Selected: 2\. Only 739e432[\s\S]*Add note \/ comment/);
+	d.type(LEFT, ESC); // \u2190 edits the note, Esc goes back to the options: still on Q1, nothing answered
+	assert.match(d.screen(), /Which base\?/);
+	assert.match(d.screen(), /\u25a2 +Base/);
+	d.type(TAB, ..."rebase first", ENTER); // Q1 = 2 + note, on to Q2
+	assert.match(d.screen(), /Which checks\?/);
+	d.type(ENTER, TAB, ..."later", ENTER); // Q2 = [1], Q3 = Yes + note
+	assert.match(d.screen(), / 1\. Base +Only 739e432 \(note: rebase first\)\n 2\. Checks +Lint \(Recommended\)\n 3\. Q3 +Yes \(Recommended\) \(note: later\)\n/);
+	// Back on an answered question, Tab on the recorded option edits its note.
+	d.type(RIGHT, TAB);
+	assert.match(d.screen(), /Add note \/ comment[\s\S]*rebase first/);
+	d.type(..." today", ENTER);
+	assert.match(d.screen(), / 1\. Base +Only 739e432 \(note: rebase first today\)/);
+	d.type(TAB, ENTER); // Tab on Review does nothing
+	assert.deepEqual(
+		d.outcome().map((a: any) => [a.answer, a.note]),
+		[["Only 739e432", "rebase first today"], ["Lint (Recommended)", undefined], ["Yes (Recommended)", "later"]],
+	);
 });
 
 test("questionnaire: the tab bar shrinks to numbers on a narrow screen", () => {

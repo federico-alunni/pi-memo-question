@@ -13,9 +13,10 @@ The pre-0.3 top-level `{ question, options }` is still accepted by `execute` for
 ## Several questions, multiple choice
 
 - **Several questions** are one questionnaire dialog: a tab bar (`▢` open, `▣` answered, `✓ Review`),
-  one page per question and a last **Review** tab that sums up the answers. `←`/`→` or Tab / Shift+Tab
+  one page per question and a last **Review** tab that sums up the answers. `←`/`→`
   move between tabs; answering goes to the next open question; Enter on Review submits (or goes to the first open
-  question); Esc cancels all of it. Notes (Tab) are not available there. On a narrow screen the tabs shrink to
+  question); Esc cancels all of it. Tab adds a note to an option as in a single question (single choice; on an
+  answered question it edits the recorded note); the review shows it as `(note: …)`. On a narrow screen the tabs shrink to
   numbers. The result has one entry per question, each under `[i/N] question`. Typed text on Review is ignored, so a
   viewer that can only type text confirms with any text followed by Enter.
 - With `to: "parent"` (or when the parent cannot answer) the questions are asked one at a time, the parent first;

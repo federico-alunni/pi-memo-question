@@ -11,7 +11,7 @@
 // ("1,3", "1-3", "docs, tests").
 //
 // Several questions are one questionnaire: a tab per question, a last "Review" tab that sums up the
-// answers, ←/→ or Tab to move between tabs.
+// answers, ←/→ to move between tabs; Tab adds a note to an option there too.
 import { decodeKittyPrintable, Editor, Key, matchesKey, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 import type { EditorTheme, TUI } from "@earendil-works/pi-tui";
 
@@ -38,7 +38,7 @@ interface Theme {
 export interface QuestionSettings {
 	/** Let the user pick several options (default: one). */
 	multiple?: boolean;
-	/** A page of a questionnaire: no frame, footer or note (Tab) of its own; the questionnaire draws them. */
+	/** A page of a questionnaire: no frame or footer of its own; the questionnaire draws them. */
 	embedded?: boolean;
 	/** The answer already recorded for this question, to mark it in the list. */
 	answered?: () => QuestionAnswer | null;
@@ -201,9 +201,11 @@ export function questionComponent(
 			if (all[index].other) return;
 			if (!ticked.delete(index)) ticked.add(index);
 		} else if (matchesKey(data, Key.tab)) {
-			if (all[index].other || multiple || embedded) return;
+			if (all[index].other || multiple) return;
 			editing = noting = true;
-			editor.setText("");
+			// Back on a recorded answer (questionnaire): edit its note.
+			const a = settings.answered?.();
+			editor.setText(a && !a.custom && !("multi" in a) && a.index === index + 1 ? (a.note ?? "") : "");
 		} else if (matchesKey(data, Key.enter)) {
 			if (all[index].other) {
 				editing = true;
@@ -280,7 +282,7 @@ export function questionComponent(
 		if (embedded)
 			return multiple
 				? "↑↓ navigate • Space tick • Enter confirm • type 1,3 • Esc cancel"
-				: "↑↓ navigate • Enter select • type a number or text • Esc cancel";
+				: "↑↓ navigate • Enter select • Tab note • type an answer • Esc cancel";
 		if (multiple) return "↑↓ navigate • Space to tick • Enter to confirm • type numbers (1,3) or an answer • Esc to cancel";
 		return "↑↓ navigate • Enter to select • Tab to add note • type a number or an answer • Esc to cancel";
 	}
@@ -310,8 +312,8 @@ const TAB_LABEL_MAX = 14;
 
 /**
  * Several questions in one dialog: a tab bar (▢ open, ▣ answered, ✓ Review), one page per question and a last
- * Review tab that sums up the answers. ←/→ and Tab / Shift+Tab move between tabs, answering moves on to the next
- * open question, Enter on Review submits (or goes to the first open question). Esc cancels all of it: `done(null)`.
+ * Review tab that sums up the answers. ←/→ move between tabs (Tab adds a note to an option, as in a single
+ * question), answering moves on to the next open question, Enter on Review submits (or goes to the first open question). Esc cancels all of it: `done(null)`.
  */
 export function questionnaireComponent(
 	tui: TUI,
@@ -363,11 +365,11 @@ export function questionnaireComponent(
 			refresh();
 			return;
 		}
-		if (matchesKey(data, Key.tab) || matchesKey(data, Key.right)) {
+		if (matchesKey(data, Key.right)) {
 			tab = (tab + 1) % (n + 1);
 			return refresh();
 		}
-		if (matchesKey(data, Key.shift("tab")) || matchesKey(data, Key.left)) {
+		if (matchesKey(data, Key.left)) {
 			tab = (tab - 1 + n + 1) % (n + 1);
 			return refresh();
 		}
